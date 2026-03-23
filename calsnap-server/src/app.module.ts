@@ -5,11 +5,13 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
+import { FoodModule } from './food/food.module';
+import { RecordModule } from './record/record.module';
+import { AnalysisModule } from './analysis/analysis.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -23,12 +25,13 @@ import { AuthModule } from './auth/auth.module';
         synchronize: config.get('NODE_ENV') !== 'production',
       }),
     }),
-
     UserModule,
-
     AuthModule,
+    FoodModule,
+    RecordModule,
+    AnalysisModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}
