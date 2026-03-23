@@ -7,7 +7,7 @@ import { FontSize, Spacing } from "@/constants/theme";
 import { useTheme } from "@/contexts/ThemeContext";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
-import { getMockCredentials } from "@/services/user";
+import { login as loginApi } from "@/services/auth";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -29,12 +29,15 @@ export default function LoginScreen() {
   const handleLogin = async () => {
     if (!validate()) return;
     setLoading(true);
-    const mock = getMockCredentials();
-    setTimeout(() => {
+    try {
+      await loginApi(email, password);
+      router.replace("/(tabs)");
+    } catch (err: any) {
+      const msg = err.response?.data?.message || "로그인에 실패했습니다";
+      setErrors({ password: msg });
+    } finally {
       setLoading(false);
-      if (email === mock.email && password === mock.password) router.replace("/(tabs)");
-      else router.replace("/(auth)/onboarding");
-    }, 1500);
+    }
   };
 
   return (

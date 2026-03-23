@@ -8,6 +8,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import PasswordStrength from "@/components/onboarding/PasswordStrength";
+import { signup as signupApi } from "@/services/auth";
 
 export default function SignupScreen() {
   const router = useRouter();
@@ -34,10 +35,15 @@ export default function SignupScreen() {
   const handleSignup = async () => {
     if (!validate()) return;
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      await signupApi(email, password, name);
       router.replace("/(auth)/onboarding");
-    }, 1500);
+    } catch (err: any) {
+      const msg = err.response?.data?.message || "회원가입에 실패했습니다";
+      setErrors({ email: msg });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

@@ -1,12 +1,13 @@
-import { useState, useRef } from "react";
-import { View, Text, ScrollView, TouchableOpacity, Animated } from "react-native";
+import { useState, useRef, useEffect } from "react";
+import { View, Text, ScrollView, TouchableOpacity, Animated, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { FontSize, Spacing } from "@/constants/theme";
 import { useTheme } from "@/contexts/ThemeContext";
 import { WEEKDAYS, formatDateKey } from "@/utils/date";
-import { getDailyRecordSync } from "@/services/record";
+import { getDailyRecord, getWeeklyStats } from "@/services/record";
+import { DailyRecord, WeeklyStats } from "@/types/record";
 import WeekCalendar from "@/components/history/WeekCalendar";
 import DailySummaryCard from "@/components/history/DailySummaryCard";
 import DailyMealList from "@/components/history/DailyMealList";
@@ -20,11 +21,27 @@ export default function HistoryScreen() {
   const [selectedDate, setSelectedDate] = useState(today);
   const [weekOffset, setWeekOffset] = useState(0);
   const fadeAnim = useRef(new Animated.Value(1)).current;
+  const [dailyRecord, setDailyRecord] = useState<DailyRecord | null>(null);
+  const [weeklyStats, setWeeklyStats] = useState<WeeklyStats | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const selectedKey = formatDateKey(selectedDate);
-  const dailyRecord = getDailyRecordSync(selectedKey);
   const isToday = selectedKey === formatDateKey(today);
   const isFuture = selectedDate > today;
+
+  useEffect(() => {
+    setLoading(true);
+    getDailyRecord(selectedKey)
+      .then(setDailyRecord)
+      .catch(() => setDailyRecord(null))
+      .finally(() => setLoading(false));
+  }, [selectedKey]);
+
+  useEffect(() => {
+    getWeeklyStats()
+      .then(setWeeklyStats)
+      .catch(() => setWeeklyStats({ avgCalories: "0", achievementRate: "0", recordedDays: "0" }));
+  }, []);
 
   const animateTransition = (cb: () => void) => {
     Animated.timing(fadeAnim, { toValue: 0, duration: 120, useNativeDriver: true }).start(() => {
@@ -80,9 +97,11 @@ export default function HistoryScreen() {
             {isToday ? " (오늘)" : ` (${WEEKDAYS[selectedDate.getDay()]})`}
           </Text>
 
-          {isFuture ? (
+          {loading ? (
+            <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: Spacing.xl }} />
+          ) : isFuture ? (
             <EmptyState type="future" />
-          ) : dailyRecord ? (
+          ) : dailyRecord && dailyRecord.meals.length > 0 ? (
             <>
               <DailySummaryCard record={dailyRecord} />
               <DailyMealList
@@ -116,7 +135,7 @@ export default function HistoryScreen() {
           )}
         </Animated.View>
 
-        <WeeklyStatsCard stats={{ avgCalories: "1,674", achievementRate: "79", recordedDays: "5" }} />
+        {weeklyStats && <WeeklyStatsCard stats={weeklyStats} />}
       </ScrollView>
     </SafeAreaView>
   );

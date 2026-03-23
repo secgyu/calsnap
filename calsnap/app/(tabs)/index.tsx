@@ -1,4 +1,5 @@
-import { View, Text, ScrollView, TouchableOpacity } from "react-native";
+import { useState, useEffect } from "react";
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -9,12 +10,28 @@ import MacroCard from "@/components/home/MacroCard";
 import MealItem from "@/components/home/MealItem";
 import { getTodaySummary } from "@/services/record";
 
-const MOCK_TODAY = getTodaySummary();
-
 export default function HomeScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const goalPercent = Math.round((MOCK_TODAY.consumed / MOCK_TODAY.goal) * 100);
+  const [todayData, setTodayData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getTodaySummary()
+      .then(setTodayData)
+      .catch(() => setTodayData({ date: new Date().toLocaleDateString("ko-KR"), consumed: 0, goal: 2100, carbs: 0, protein: 0, fat: 0, meals: [] }))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading || !todayData) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </SafeAreaView>
+    );
+  }
+
+  const goalPercent = todayData.goal > 0 ? Math.round((todayData.consumed / todayData.goal) * 100) : 0;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
@@ -32,7 +49,7 @@ export default function HomeScreen() {
           }}
         >
           <View>
-            <Text style={{ fontSize: FontSize.sm, color: colors.textSecondary }}>{MOCK_TODAY.date}</Text>
+            <Text style={{ fontSize: FontSize.sm, color: colors.textSecondary }}>{todayData.date}</Text>
             <Text style={{ fontSize: FontSize.xxl, fontWeight: "800", color: colors.text, marginTop: 2 }}>
               오늘도 건강하게!
             </Text>
@@ -59,13 +76,13 @@ export default function HomeScreen() {
             <MaterialCommunityIcons name="flag-variant" size={14} color={colors.primary} />
             <Text style={{ fontSize: FontSize.xs, fontWeight: "700", color: colors.primary }}>Goal {goalPercent}%</Text>
           </View>
-          <CalorieRing consumed={MOCK_TODAY.consumed} goal={MOCK_TODAY.goal} />
+          <CalorieRing consumed={todayData.consumed} goal={todayData.goal} />
         </View>
 
         <View style={{ flexDirection: "row", gap: Spacing.sm, marginBottom: Spacing.xl }}>
-          <MacroCard label="탄수화물" value={MOCK_TODAY.carbs} unit="g" color={colors.carbs} />
-          <MacroCard label="단백질" value={MOCK_TODAY.protein} unit="g" color={colors.protein} />
-          <MacroCard label="지방" value={MOCK_TODAY.fat} unit="g" color={colors.fat} />
+          <MacroCard label="탄수화물" value={todayData.carbs} unit="g" color={colors.carbs} />
+          <MacroCard label="단백질" value={todayData.protein} unit="g" color={colors.protein} />
+          <MacroCard label="지방" value={todayData.fat} unit="g" color={colors.fat} />
         </View>
 
         <View
@@ -82,7 +99,7 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {MOCK_TODAY.meals.map((meal) => (
+        {todayData.meals.map((meal: any) => (
           <MealItem
             key={meal.id}
             name={meal.name}
