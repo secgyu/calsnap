@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import { FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/contexts/ThemeContext";
 import CalorieRing from "@/components/home/CalorieRing";
@@ -16,22 +17,25 @@ export default function HomeScreen() {
   const [todayData, setTodayData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    getTodaySummary()
-      .then(setTodayData)
-      .catch(() =>
-        setTodayData({
-          date: new Date().toLocaleDateString("ko-KR"),
-          consumed: 0,
-          goal: 0,
-          carbs: 0,
-          protein: 0,
-          fat: 0,
-          meals: [],
-        }),
-      )
-      .finally(() => setLoading(false));
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      getTodaySummary()
+        .then(setTodayData)
+        .catch(() =>
+          setTodayData({
+            date: new Date().toLocaleDateString("ko-KR"),
+            consumed: 0,
+            goal: 0,
+            carbs: 0,
+            protein: 0,
+            fat: 0,
+            meals: [],
+          }),
+        )
+        .finally(() => setLoading(false));
+    }, []),
+  );
 
   if (loading || !todayData) {
     return (

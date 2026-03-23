@@ -1,17 +1,39 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/contexts/ThemeContext";
+import { getUserProfile, updateProfile } from "@/services/user";
 import Button from "@/components/ui/Button";
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const [name, setName] = useState("홍길동");
-  const [email] = useState("test@test.com");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    getUserProfile().then((u) => {
+      setName(u.name || "");
+      setEmail(u.email || "");
+    }).catch(() => {});
+  }, []);
+
+  const handleSave = async () => {
+    setLoading(true);
+    try {
+      await updateProfile({ name: name.trim() });
+      Alert.alert("저장 완료", "프로필이 업데이트되었습니다.");
+      router.back();
+    } catch {
+      Alert.alert("오류", "저장에 실패했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
@@ -49,16 +71,6 @@ export default function ProfileScreen() {
           >
             <MaterialCommunityIcons name="account" size={48} color="#FFFFFF" />
           </View>
-          <TouchableOpacity
-            style={{
-              backgroundColor: colors.primaryLight,
-              paddingHorizontal: Spacing.md,
-              paddingVertical: Spacing.xs,
-              borderRadius: 9999,
-            }}
-          >
-            <Text style={{ fontSize: FontSize.sm, fontWeight: "600", color: colors.primary }}>사진 변경</Text>
-          </TouchableOpacity>
         </View>
 
         <View style={{ marginBottom: Spacing.lg }}>
@@ -105,29 +117,10 @@ export default function ProfileScreen() {
           </Text>
         </View>
 
-        <TouchableOpacity
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            backgroundColor: colors.primaryLight,
-            padding: Spacing.md,
-            borderRadius: BorderRadius.lg,
-            gap: Spacing.sm,
-          }}
-        >
-          <MaterialCommunityIcons name="lock-reset" size={20} color={colors.primary} />
-          <Text style={{ flex: 1, fontSize: FontSize.md, fontWeight: "600", color: colors.primary }}>
-            비밀번호 변경
-          </Text>
-          <MaterialCommunityIcons name="chevron-right" size={20} color={colors.primary} />
-        </TouchableOpacity>
-
         <Button
           title="저장하기"
-          onPress={() => {
-            Alert.alert("저장 완료", "프로필이 업데이트되었습니다.");
-            router.back();
-          }}
+          onPress={handleSave}
+          loading={loading}
           disabled={!name.trim()}
           style={{ marginTop: Spacing.xl }}
         />

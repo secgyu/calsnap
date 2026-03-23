@@ -1,9 +1,10 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { View, Text, StyleSheet, Animated, Easing } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Image } from "expo-image";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LightTheme as Colors, FontSize, Spacing } from "@/constants/theme";
+import { getAnalysisResult } from "@/services/analysis";
 
 export default function AnalysisLoadingScreen() {
   const router = useRouter();
@@ -11,6 +12,7 @@ export default function AnalysisLoadingScreen() {
   const spinAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     Animated.loop(
@@ -38,20 +40,38 @@ export default function AnalysisLoadingScreen() {
     ).start();
 
     Animated.timing(progressAnim, {
-      toValue: 1,
-      duration: 3000,
+      toValue: 0.8,
+      duration: 5000,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: false,
     }).start();
 
-    const timeout = setTimeout(() => {
-      router.replace({
-        pathname: "/analysis/result",
-        params: { imageUri: imageUri || "" },
-      });
-    }, 3500);
+    if (!imageUri) {
+      setError(true);
+      return;
+    }
 
-    return () => clearTimeout(timeout);
+    getAnalysisResult(imageUri)
+      .then((result) => {
+        Animated.timing(progressAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: false,
+        }).start();
+
+        setTimeout(() => {
+          router.replace({
+            pathname: "/analysis/result",
+            params: {
+              imageUri: imageUri || "",
+              result: JSON.stringify(result),
+            },
+          });
+        }, 400);
+      })
+      .catch(() => {
+        setError(true);
+      });
   }, []);
 
   const spin = spinAnim.interpolate({
@@ -83,29 +103,48 @@ export default function AnalysisLoadingScreen() {
           </Animated.View>
         </Animated.View>
 
-        <Text style={styles.title}>AI가 음식을 분석하고 있어요...</Text>
-        <Text style={styles.subtitle}>이미지의 영양 정보를 파악하여{"\n"}정확한 식단을 기록하고 있습니다.</Text>
+        <Text style={styles.title}>
+          {error ? "분석에 실패했어요" : "AI가 음식을 분석하고 있어요..."}
+        </Text>
+        <Text style={styles.subtitle}>
+          {error
+            ? "다시 시도해주세요."
+            : "이미지의 영양 정보를 파악하여\n정확한 식단을 기록하고 있습니다."}
+        </Text>
 
-        <View style={styles.tagsRow}>
+        {error ? (
           <View style={styles.tag}>
-            <MaterialCommunityIcons name="silverware-fork-knife" size={14} color={Colors.primary} />
-            <Text style={styles.tagText}>음식 인식</Text>
+            <Text
+              style={styles.tagText}
+              onPress={() => router.replace("/(tabs)/camera")}
+            >
+              다시 찍기
+            </Text>
           </View>
-          <View style={styles.tag}>
-            <MaterialCommunityIcons name="fire" size={14} color={Colors.warning} />
-            <Text style={styles.tagText}>칼로리 계산</Text>
+        ) : (
+          <View style={styles.tagsRow}>
+            <View style={styles.tag}>
+              <MaterialCommunityIcons name="silverware-fork-knife" size={14} color={Colors.primary} />
+              <Text style={styles.tagText}>음식 인식</Text>
+            </View>
+            <View style={styles.tag}>
+              <MaterialCommunityIcons name="fire" size={14} color={Colors.warning} />
+              <Text style={styles.tagText}>칼로리 계산</Text>
+            </View>
           </View>
-        </View>
+        )}
       </View>
 
-      <View style={styles.progressSection}>
-        <View style={styles.progressBarBg}>
-          <Animated.View style={[styles.progressBarFill, { width: progressWidth }]} />
+      {!error && (
+        <View style={styles.progressSection}>
+          <View style={styles.progressBarBg}>
+            <Animated.View style={[styles.progressBarFill, { width: progressWidth }]} />
+          </View>
+          <View style={styles.progressInfo}>
+            <Text style={styles.engineText}>SCANNING ENGINE V2.4</Text>
+          </View>
         </View>
-        <View style={styles.progressInfo}>
-          <Text style={styles.engineText}>SCANNING ENGINE V2.4</Text>
-        </View>
-      </View>
+      )}
     </View>
   );
 }

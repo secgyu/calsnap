@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useCallback } from "react";
 import { View, Text, ScrollView, TouchableOpacity, Animated, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { FontSize, Spacing } from "@/constants/theme";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -29,19 +30,19 @@ export default function HistoryScreen() {
   const isToday = selectedKey === formatDateKey(today);
   const isFuture = selectedDate > today;
 
-  useEffect(() => {
-    setLoading(true);
-    getDailyRecord(selectedKey)
-      .then(setDailyRecord)
-      .catch(() => setDailyRecord(null))
-      .finally(() => setLoading(false));
-  }, [selectedKey]);
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      getDailyRecord(selectedKey)
+        .then(setDailyRecord)
+        .catch(() => setDailyRecord(null))
+        .finally(() => setLoading(false));
 
-  useEffect(() => {
-    getWeeklyStats()
-      .then(setWeeklyStats)
-      .catch(() => setWeeklyStats({ avgCalories: "0", achievementRate: "0", recordedDays: "0" }));
-  }, []);
+      getWeeklyStats()
+        .then(setWeeklyStats)
+        .catch(() => setWeeklyStats({ avgCalories: "0", achievementRate: "0", recordedDays: "0" }));
+    }, [selectedKey]),
+  );
 
   const animateTransition = (cb: () => void) => {
     Animated.timing(fadeAnim, { toValue: 0, duration: 120, useNativeDriver: true }).start(() => {

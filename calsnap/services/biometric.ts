@@ -28,18 +28,13 @@ export async function getBiometricType(): Promise<string> {
 export async function authenticate(): Promise<boolean> {
   try {
     const biometricType = await getBiometricType();
-    console.log('[Bio] 인증 시작:', biometricType);
-
     const result = await LocalAuthentication.authenticateAsync({
       promptMessage: `${biometricType}으로 CalSnap에 로그인`,
       cancelLabel: '비밀번호로 로그인',
       disableDeviceFallback: false,
     });
-
-    console.log('[Bio] 결과:', JSON.stringify(result));
     return result.success;
-  } catch (err) {
-    console.log('[Bio] 에러:', err);
+  } catch {
     return false;
   }
 }

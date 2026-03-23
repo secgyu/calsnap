@@ -7,30 +7,33 @@ import { FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/contexts/ThemeContext";
 import Button from "@/components/ui/Button";
 import NutritionBreakdown from "@/components/analysis/NutritionBreakdown";
-
-const MOCK_RESULT = {
-  name: "김치찌개",
-  mealType: "점심 식사로 감지됨",
-  calories: 320,
-  carbs: 45,
-  protein: 18,
-  fat: 12,
-  sodium: 890,
-  remainingCalories: 853,
-  goalPercent: 35,
-  tip: "점심으로 적절한 칼로리예요!",
-};
+import { AnalysisResult } from "@/types/food";
 
 export default function AnalysisResultScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const { imageUri } = useLocalSearchParams<{ imageUri: string }>();
+  const { imageUri, result: resultStr } = useLocalSearchParams<{ imageUri: string; result: string }>();
+
+  const analysisResult: AnalysisResult = resultStr
+    ? JSON.parse(resultStr)
+    : {
+        name: "알 수 없음",
+        mealType: "",
+        calories: 0,
+        carbs: 0,
+        protein: 0,
+        fat: 0,
+        sodium: 0,
+        remainingCalories: 0,
+        goalPercent: 0,
+        tip: "",
+      };
 
   const nutrients = [
-    { label: "탄수화물", value: MOCK_RESULT.carbs, unit: "g", color: colors.carbs },
-    { label: "단백질", value: MOCK_RESULT.protein, unit: "g", color: colors.protein },
-    { label: "지방", value: MOCK_RESULT.fat, unit: "g", color: colors.fat },
-    { label: "나트륨", value: MOCK_RESULT.sodium, unit: "mg", color: colors.sodium },
+    { label: "탄수화물", value: analysisResult.carbs, unit: "g", color: colors.carbs },
+    { label: "단백질", value: analysisResult.protein, unit: "g", color: colors.protein },
+    { label: "지방", value: analysisResult.fat, unit: "g", color: colors.fat },
+    { label: "나트륨", value: analysisResult.sodium, unit: "mg", color: colors.sodium },
   ];
 
   return (
@@ -78,60 +81,72 @@ export default function AnalysisResultScreen() {
             }}
           >
             <Text style={{ fontSize: FontSize.sm, fontWeight: "700", color: "#FFFFFF" }}>
-              {MOCK_RESULT.calories} kcal
+              {analysisResult.calories} kcal
             </Text>
           </View>
         </View>
 
         <Text style={{ fontSize: 32, fontWeight: "800", color: colors.text, marginBottom: Spacing.xs }}>
-          {MOCK_RESULT.name}
+          {analysisResult.name}
         </Text>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: Spacing.lg }}>
-          <MaterialCommunityIcons name="silverware-fork-knife" size={14} color={colors.textSecondary} />
-          <Text style={{ fontSize: FontSize.sm, color: colors.textSecondary }}>{MOCK_RESULT.mealType}</Text>
-        </View>
+        {analysisResult.mealType ? (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: Spacing.lg }}>
+            <MaterialCommunityIcons name="silverware-fork-knife" size={14} color={colors.textSecondary} />
+            <Text style={{ fontSize: FontSize.sm, color: colors.textSecondary }}>{analysisResult.mealType}</Text>
+          </View>
+        ) : (
+          <View style={{ marginBottom: Spacing.lg }} />
+        )}
 
         <NutritionBreakdown nutrients={nutrients} />
 
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-            backgroundColor: colors.card,
-            borderRadius: BorderRadius.lg,
-            padding: Spacing.lg,
-            marginBottom: Spacing.md,
-            borderWidth: 1,
-            borderColor: colors.primary,
-          }}
-        >
-          <Text style={{ fontSize: FontSize.md, fontWeight: "600", color: colors.text }}>오늘 남은 칼로리</Text>
-          <Text style={{ fontSize: FontSize.xl, fontWeight: "800", color: colors.primary }}>
-            {MOCK_RESULT.remainingCalories} kcal
-          </Text>
-        </View>
-
-        <View
-          style={{
-            flexDirection: "row",
-            backgroundColor: colors.primaryLight,
-            borderRadius: BorderRadius.lg,
-            padding: Spacing.lg,
-            marginBottom: Spacing.xl,
-            gap: Spacing.sm,
-          }}
-        >
-          <MaterialCommunityIcons name="lightbulb-outline" size={20} color={colors.primary} />
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: FontSize.md, fontWeight: "700", color: colors.primary, marginBottom: 2 }}>
-              {MOCK_RESULT.tip}
-            </Text>
-            <Text style={{ fontSize: FontSize.xs, color: colors.textSecondary }}>
-              오늘 목표량의 {MOCK_RESULT.goalPercent}%를 달성하셨습니다.
+        {analysisResult.remainingCalories > 0 && (
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              backgroundColor: colors.card,
+              borderRadius: BorderRadius.lg,
+              padding: Spacing.lg,
+              marginBottom: Spacing.md,
+              borderWidth: 1,
+              borderColor: colors.primary,
+            }}
+          >
+            <Text style={{ fontSize: FontSize.md, fontWeight: "600", color: colors.text }}>오늘 남은 칼로리</Text>
+            <Text style={{ fontSize: FontSize.xl, fontWeight: "800", color: colors.primary }}>
+              {analysisResult.remainingCalories} kcal
             </Text>
           </View>
-        </View>
+        )}
+
+        {analysisResult.tip ? (
+          <View
+            style={{
+              flexDirection: "row",
+              backgroundColor: colors.primaryLight,
+              borderRadius: BorderRadius.lg,
+              padding: Spacing.lg,
+              marginBottom: Spacing.xl,
+              gap: Spacing.sm,
+            }}
+          >
+            <MaterialCommunityIcons name="lightbulb-outline" size={20} color={colors.primary} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: FontSize.md, fontWeight: "700", color: colors.primary, marginBottom: 2 }}>
+                {analysisResult.tip}
+              </Text>
+              {analysisResult.goalPercent > 0 && (
+                <Text style={{ fontSize: FontSize.xs, color: colors.textSecondary }}>
+                  오늘 목표량의 {analysisResult.goalPercent}%를 달성하셨습니다.
+                </Text>
+              )}
+            </View>
+          </View>
+        ) : (
+          <View style={{ marginBottom: Spacing.xl }} />
+        )}
 
         <View style={{ flexDirection: "row", gap: Spacing.sm }}>
           <Button

@@ -47,12 +47,8 @@ export default function SplashScreen() {
       const hasToken = await isAuthenticated();
       const hasRefresh = await hasRefreshToken();
 
-      console.log("[Auth]", { bioAvailable, bioEnabled, hasToken, hasRefresh });
-
       if (bioAvailable && bioEnabled && hasRefresh) {
-        console.log("[Auth] Face ID 시도 중...");
         const success = await authenticate();
-        console.log("[Auth] Face ID 결과:", success);
         if (success) {
           if (!hasToken) {
             const refreshed = await refreshSession();

@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { View, Text, TextInput, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
+import { View, Text, TextInput, ScrollView, KeyboardAvoidingView, Platform, Alert } from "react-native";
 import { MealTime } from "@/types/food";
 import { FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/contexts/ThemeContext";
+import { createRecord } from "@/services/record";
 import MealTimeSelector from "./MealTimeSelector";
 import Button from "@/components/ui/Button";
 
@@ -18,6 +19,7 @@ export default function ManualEntryForm({ onSubmit }: ManualEntryFormProps) {
   const [protein, setProtein] = useState("");
   const [fat, setFat] = useState("");
   const [mealTime, setMealTime] = useState<MealTime>("lunch");
+  const [loading, setLoading] = useState(false);
 
   const inputStyle = {
     backgroundColor: colors.card,
@@ -28,6 +30,27 @@ export default function ManualEntryForm({ onSubmit }: ManualEntryFormProps) {
     height: 48,
     fontSize: FontSize.md,
     color: colors.text,
+  };
+
+  const handleSave = async () => {
+    if (!name.trim() || !calories) return;
+    setLoading(true);
+    try {
+      await createRecord({
+        name: name.trim(),
+        calories: parseInt(calories) || 0,
+        carbs: parseInt(carbs) || 0,
+        protein: parseInt(protein) || 0,
+        fat: parseInt(fat) || 0,
+        mealType: mealTime,
+        recordedAt: new Date().toISOString(),
+      });
+      onSubmit();
+    } catch {
+      Alert.alert("오류", "저장에 실패했습니다. 다시 시도해주세요.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -87,7 +110,13 @@ export default function ManualEntryForm({ onSubmit }: ManualEntryFormProps) {
           식사 시간
         </Text>
         <MealTimeSelector value={mealTime} onChange={setMealTime} />
-        <Button title="저장하기" onPress={onSubmit} disabled={!name || !calories} style={{ marginTop: Spacing.lg }} />
+        <Button
+          title="저장하기"
+          onPress={handleSave}
+          loading={loading}
+          disabled={!name || !calories}
+          style={{ marginTop: Spacing.lg }}
+        />
       </ScrollView>
     </KeyboardAvoidingView>
   );

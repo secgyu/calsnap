@@ -1,10 +1,11 @@
-import { useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity, Alert } from "react-native";
+import { useState, useEffect } from "react";
+import { View, Text, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/contexts/ThemeContext";
+import { getUserProfile, updateGoal } from "@/services/user";
 import Button from "@/components/ui/Button";
 
 type GoalType = "lose" | "maintain" | "gain";
@@ -22,11 +23,65 @@ const GOAL_OPTIONS: {
 
 const CALORIE_PRESETS = [1500, 1800, 2000, 2100, 2300, 2500];
 
+const GOAL_TYPE_MAP: Record<string, GoalType> = {
+  "체중 감량": "lose",
+  "체중 유지": "maintain",
+  "체중 증가": "gain",
+};
+
+const GOAL_LABEL_MAP: Record<GoalType, string> = {
+  lose: "체중 감량",
+  maintain: "체중 유지",
+  gain: "체중 증가",
+};
+
 export default function GoalScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
   const [goalType, setGoalType] = useState<GoalType>("maintain");
-  const [goalCalorie, setGoalCalorie] = useState(2100);
+  const [goalCalorie, setGoalCalorie] = useState(0);
+  const [tdee, setTdee] = useState(0);
+  const [pageLoading, setPageLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    getUserProfile()
+      .then((u) => {
+        if (u.goalCalorie) setGoalCalorie(u.goalCalorie);
+        if (u.goalType && GOAL_TYPE_MAP[u.goalType]) {
+          setGoalType(GOAL_TYPE_MAP[u.goalType]);
+        }
+        if (u.goalCalorie) setTdee(u.goalCalorie);
+      })
+      .catch(() => {})
+      .finally(() => setPageLoading(false));
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await updateGoal({
+        goalCalorie,
+        goalType: GOAL_LABEL_MAP[goalType],
+      });
+      Alert.alert("저장 완료", `목표 칼로리가 ${goalCalorie} kcal로 설정되었습니다.`);
+      router.back();
+    } catch {
+      Alert.alert("오류", "저장에 실패했습니다.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (pageLoading) {
+    return (
+      <SafeAreaView
+        style={{ flex: 1, backgroundColor: colors.background, justifyContent: "center", alignItems: "center" }}
+      >
+        <ActivityIndicator size="large" color={colors.primary} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
@@ -186,32 +241,27 @@ export default function GoalScreen() {
           ))}
         </View>
 
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            backgroundColor: isDark ? "#332B00" : "#FFF8E1",
-            borderRadius: BorderRadius.md,
-            padding: Spacing.md,
-            gap: Spacing.sm,
-            borderWidth: 1,
-            borderColor: isDark ? "#665500" : "#FFE082",
-          }}
-        >
-          <MaterialCommunityIcons name="lightbulb-on-outline" size={18} color={colors.warning} />
-          <Text style={{ flex: 1, fontSize: FontSize.sm, color: colors.textSecondary, lineHeight: 20 }}>
-            온보딩에서 입력한 신체 정보 기반 추천 TDEE는 2,100 kcal입니다.
-          </Text>
-        </View>
+        {tdee > 0 && (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: isDark ? "#332B00" : "#FFF8E1",
+              borderRadius: BorderRadius.md,
+              padding: Spacing.md,
+              gap: Spacing.sm,
+              borderWidth: 1,
+              borderColor: isDark ? "#665500" : "#FFE082",
+            }}
+          >
+            <MaterialCommunityIcons name="lightbulb-on-outline" size={18} color={colors.warning} />
+            <Text style={{ flex: 1, fontSize: FontSize.sm, color: colors.textSecondary, lineHeight: 20 }}>
+              현재 설정된 목표 칼로리는 {tdee.toLocaleString()} kcal입니다.
+            </Text>
+          </View>
+        )}
 
-        <Button
-          title="저장하기"
-          onPress={() => {
-            Alert.alert("저장 완료", `목표 칼로리가 ${goalCalorie} kcal로 설정되었습니다.`);
-            router.back();
-          }}
-          style={{ marginTop: Spacing.lg }}
-        />
+        <Button title="저장하기" onPress={handleSave} loading={saving} style={{ marginTop: Spacing.lg }} />
       </ScrollView>
     </SafeAreaView>
   );

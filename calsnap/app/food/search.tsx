@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity } from "react-native";
+import { useState, useEffect } from "react";
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -7,6 +7,7 @@ import { FoodItem, MealTime } from "@/types/food";
 import { FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/contexts/ThemeContext";
 import { searchFoods, getRecentSearches } from "@/services/food";
+import { createRecord } from "@/services/record";
 import SearchBar from "@/components/food/SearchBar";
 import FoodCard from "@/components/food/FoodCard";
 import ManualEntryForm from "@/components/food/ManualEntryForm";
@@ -20,45 +21,53 @@ export default function FoodSearchScreen() {
   const [selectedFood, setSelectedFood] = useState<FoodItem | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [mealTime, setMealTime] = useState<MealTime>("lunch");
+  const [foods, setFoods] = useState<any[]>([]);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const recentSearches = ["사과", "현미밥", "닭가슴살"];
-  const filteredFoods = query.trim()
-    ? [
-        { id: "1", name: "현미밥", serving: "1공기 (210g)", calories: 310, carbs: 65, protein: 6, fat: 1, icon: "🍚" },
-        { id: "2", name: "사과", serving: "1개 (200g)", calories: 104, carbs: 27, protein: 0, fat: 0, icon: "🍎" },
-        {
-          id: "3",
-          name: "닭가슴살 샐러드",
-          serving: "1인분",
-          calories: 320,
-          carbs: 12,
-          protein: 35,
-          fat: 8,
-          icon: "🥗",
-        },
-        { id: "4", name: "삶은 달걀", serving: "1개 (60g)", calories: 78, carbs: 1, protein: 6, fat: 5, icon: "🥚" },
-        { id: "5", name: "바나나", serving: "1개 (120g)", calories: 105, carbs: 27, protein: 1, fat: 0, icon: "🍌" },
-      ].filter((f) => f.name.includes(query.trim()))
-    : [
-        { id: "1", name: "현미밥", serving: "1공기 (210g)", calories: 310, carbs: 65, protein: 6, fat: 1, icon: "🍚" },
-        { id: "2", name: "사과", serving: "1개 (200g)", calories: 104, carbs: 27, protein: 0, fat: 0, icon: "🍎" },
-        {
-          id: "3",
-          name: "닭가슴살 샐러드",
-          serving: "1인분",
-          calories: 320,
-          carbs: 12,
-          protein: 35,
-          fat: 8,
-          icon: "🥗",
-        },
-        { id: "4", name: "삶은 달걀", serving: "1개 (60g)", calories: 78, carbs: 1, protein: 6, fat: 5, icon: "🥚" },
-        { id: "5", name: "바나나", serving: "1개 (120g)", calories: 105, carbs: 27, protein: 1, fat: 0, icon: "🍌" },
-      ];
+  useEffect(() => {
+    getRecentSearches()
+      .then(setRecentSearches)
+      .catch(() => {});
+    searchFoods("")
+      .then(setFoods)
+      .catch(() => {});
+  }, []);
 
-  const handleAddFood = () => {
-    setSelectedFood(null);
-    router.back();
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(true);
+      searchFoods(query)
+        .then(setFoods)
+        .catch(() => setFoods([]))
+        .finally(() => setLoading(false));
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  const [adding, setAdding] = useState(false);
+
+  const handleAddFood = async () => {
+    if (!selectedFood || adding) return;
+    setAdding(true);
+    try {
+      await createRecord({
+        name: selectedFood.name,
+        calories: (selectedFood.calories || 0) * quantity,
+        carbs: (selectedFood.carbs || 0) * quantity,
+        protein: (selectedFood.protein || 0) * quantity,
+        fat: (selectedFood.fat || 0) * quantity,
+        mealType: mealTime,
+        icon: selectedFood.icon,
+        recordedAt: new Date().toISOString(),
+      });
+      setSelectedFood(null);
+      router.back();
+    } catch {
+      Alert.alert("오류", "음식 추가에 실패했습니다.");
+    } finally {
+      setAdding(false);
+    }
   };
 
   return (
@@ -139,12 +148,14 @@ export default function FoodSearchScreen() {
           >
             <Text style={{ fontSize: FontSize.lg, fontWeight: "800", color: colors.text }}>검색 결과</Text>
             <Text style={{ fontSize: FontSize.sm, color: colors.textSecondary }}>
-              {filteredFoods.length}개의 항목 발견
+              {loading ? "검색 중..." : `${foods.length}개의 항목 발견`}
             </Text>
           </View>
-          {filteredFoods.map((food) => (
-            <FoodCard key={food.id} food={food} onPress={() => setSelectedFood(food)} />
-          ))}
+          {loading ? (
+            <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: Spacing.xl }} />
+          ) : (
+            foods.map((food) => <FoodCard key={food.id} food={food} onPress={() => setSelectedFood(food)} />)
+          )}
         </ScrollView>
       ) : (
         <ManualEntryForm onSubmit={() => router.back()} />

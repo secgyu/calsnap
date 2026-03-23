@@ -1,10 +1,11 @@
-import { useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert } from "react-native";
+import { useState, useEffect } from "react";
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/contexts/ThemeContext";
+import { getUserProfile, updateProfile } from "@/services/user";
 import Button from "@/components/ui/Button";
 import { calculateBMR, calculateTDEE, ActivityLevel, ACTIVITY_LEVELS } from "@/utils/calories";
 
@@ -14,15 +15,59 @@ export default function BodyScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const [gender, setGender] = useState<Gender>("male");
-  const [age, setAge] = useState("28");
-  const [height, setHeight] = useState("175");
-  const [weight, setWeight] = useState("72");
+  const [age, setAge] = useState("");
+  const [height, setHeight] = useState("");
+  const [weight, setWeight] = useState("");
   const [activity, setActivity] = useState<ActivityLevel>("moderate");
+  const [pageLoading, setPageLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    getUserProfile()
+      .then((u) => {
+        if (u.gender) setGender(u.gender as Gender);
+        if (u.age) setAge(String(u.age));
+        if (u.height) setHeight(String(u.height));
+        if (u.weight) setWeight(String(u.weight));
+        if (u.activityLevel) setActivity(u.activityLevel as ActivityLevel);
+      })
+      .catch(() => {})
+      .finally(() => setPageLoading(false));
+  }, []);
 
   const n = { age: parseInt(age) || 0, height: parseInt(height) || 0, weight: parseInt(weight) || 0 };
   const bmr = calculateBMR(gender, n.age, n.height, n.weight);
   const tdee = calculateTDEE(gender, n.age, n.height, n.weight, activity);
   const isValid = n.age > 0 && n.height > 0 && n.weight > 0;
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await updateProfile({
+        gender,
+        age: n.age,
+        height: n.height,
+        weight: n.weight,
+        activityLevel: activity,
+      });
+      Alert.alert("저장 완료", "신체 정보가 업데이트되었습니다.");
+      router.back();
+    } catch {
+      Alert.alert("오류", "저장에 실패했습니다.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (pageLoading) {
+    return (
+      <SafeAreaView
+        style={{ flex: 1, backgroundColor: colors.background, justifyContent: "center", alignItems: "center" }}
+      >
+        <ActivityIndicator size="large" color={colors.primary} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
@@ -188,10 +233,8 @@ export default function BodyScreen() {
 
         <Button
           title="저장하기"
-          onPress={() => {
-            Alert.alert("저장 완료", "신체 정보가 업데이트되었습니다.");
-            router.back();
-          }}
+          onPress={handleSave}
+          loading={saving}
           disabled={!isValid}
           style={{ marginTop: Spacing.lg }}
         />
