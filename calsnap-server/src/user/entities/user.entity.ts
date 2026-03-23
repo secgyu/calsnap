@@ -48,10 +48,10 @@ export class User {
   @Column({ type: 'enum', enum: ActivityLevel, nullable: true })
   activityLevel: ActivityLevel;
 
-  @Column({ default: 2100 })
+  @Column({ default: 0 })
   goalCalorie: number;
 
-  @Column({ default: '체중 유지' })
+  @Column({ default: '미설정' })
   goalType: string;
 
   @Column({ nullable: true, type: 'varchar' })
