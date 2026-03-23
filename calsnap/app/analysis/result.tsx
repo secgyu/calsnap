@@ -1,4 +1,5 @@
-import { View, Text, ScrollView } from "react-native";
+import { useState } from "react";
+import { View, Text, ScrollView, Alert } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -8,11 +9,20 @@ import { useTheme } from "@/contexts/ThemeContext";
 import Button from "@/components/ui/Button";
 import NutritionBreakdown from "@/components/analysis/NutritionBreakdown";
 import { AnalysisResult } from "@/types/food";
+import { createRecord } from "@/services/record";
+
+const MEAL_TYPE_TO_ENUM: Record<string, string> = {
+  아침: "breakfast",
+  점심: "lunch",
+  저녁: "dinner",
+  간식: "snack",
+};
 
 export default function AnalysisResultScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const { imageUri, result: resultStr } = useLocalSearchParams<{ imageUri: string; result: string }>();
+  const [saving, setSaving] = useState(false);
 
   const analysisResult: AnalysisResult = resultStr
     ? JSON.parse(resultStr)
@@ -155,7 +165,35 @@ export default function AnalysisResultScreen() {
             variant="outlined"
             style={{ flex: 1 }}
           />
-          <Button title="기록하기" onPress={() => router.replace("/(tabs)")} style={{ flex: 2 }} />
+          <Button
+            title="기록하기"
+            loading={saving}
+            onPress={async () => {
+              setSaving(true);
+              try {
+                const rawMealType = analysisResult.mealType.replace(" 식사로 감지됨", "");
+                const mealType = MEAL_TYPE_TO_ENUM[rawMealType] || "lunch";
+                await createRecord({
+                  name: analysisResult.name,
+                  calories: analysisResult.calories,
+                  carbs: analysisResult.carbs,
+                  protein: analysisResult.protein,
+                  fat: analysisResult.fat,
+                  sodium: analysisResult.sodium,
+                  mealType,
+                  imageUrl: imageUri || undefined,
+                  capturedByAi: true,
+                  recordedAt: new Date().toISOString(),
+                });
+                router.replace("/(tabs)");
+              } catch {
+                Alert.alert("오류", "기록 저장에 실패했습니다.");
+              } finally {
+                setSaving(false);
+              }
+            }}
+            style={{ flex: 2 }}
+          />
         </View>
       </ScrollView>
     </SafeAreaView>
