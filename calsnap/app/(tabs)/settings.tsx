@@ -1,24 +1,66 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { View, Text, ScrollView, TouchableOpacity, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/contexts/ThemeContext";
+import { getUserProfile } from "@/services/user";
+import { logout as logoutApi } from "@/services/auth";
+import { isBiometricAvailable, isBiometricEnabled, setBiometricEnabled, getBiometricType } from "@/services/biometric";
 import SectionGroup, { SettingItem } from "@/components/settings/SectionGroup";
-
-const MOCK_USER = { name: "홍길동", email: "test@test.com", height: 175, weight: 72, goalCalorie: 2100 };
 
 export default function SettingsScreen() {
   const router = useRouter();
   const { isDark, setDarkMode, colors } = useTheme();
   const [notificationEnabled, setNotificationEnabled] = useState(true);
   const [mealReminder, setMealReminder] = useState(true);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricOn, setBiometricOn] = useState(false);
+  const [biometricLabel, setBiometricLabel] = useState("생체 인증");
+  const [user, setUser] = useState({ name: "", email: "", height: 0, weight: 0, goalCalorie: 0 });
+
+  useEffect(() => {
+    getUserProfile()
+      .then((u) =>
+        setUser({
+          name: u.name,
+          email: u.email,
+          height: u.height || 0,
+          weight: u.weight || 0,
+          goalCalorie: u.goalCalorie || 0,
+        }),
+      )
+      .catch(() => {});
+
+    (async () => {
+      const available = await isBiometricAvailable();
+      setBiometricAvailable(available);
+      if (available) {
+        const enabled = await isBiometricEnabled();
+        setBiometricOn(enabled);
+        const label = await getBiometricType();
+        setBiometricLabel(label);
+      }
+    })();
+  }, []);
+
+  const handleBiometricToggle = async (value: boolean) => {
+    setBiometricOn(value);
+    await setBiometricEnabled(value);
+  };
 
   const handleLogout = () => {
     Alert.alert("로그아웃", "정말 로그아웃 하시겠습니까?", [
       { text: "취소", style: "cancel" },
-      { text: "로그아웃", style: "destructive", onPress: () => router.replace("/(auth)/login") },
+      {
+        text: "로그아웃",
+        style: "destructive",
+        onPress: async () => {
+          await logoutApi();
+          router.replace("/(auth)/login");
+        },
+      },
     ]);
   };
 
@@ -33,19 +75,19 @@ export default function SettingsScreen() {
     {
       icon: "account-edit-outline",
       label: "프로필 수정",
-      value: MOCK_USER.name,
+      value: user.name,
       onPress: () => router.push("/settings/profile"),
     },
     {
       icon: "target",
       label: "목표 설정",
-      value: `${MOCK_USER.goalCalorie} kcal`,
+      value: `${user.goalCalorie} kcal`,
       onPress: () => router.push("/settings/goal"),
     },
     {
       icon: "human-male-height",
       label: "신체 정보",
-      value: `${MOCK_USER.height}cm / ${MOCK_USER.weight}kg`,
+      value: `${user.height}cm / ${user.weight}kg`,
       onPress: () => router.push("/settings/body"),
     },
   ];
@@ -69,6 +111,17 @@ export default function SettingsScreen() {
 
   const appSection: SettingItem[] = [
     { icon: "theme-light-dark", label: "다크 모드", type: "toggle", toggleValue: isDark, onToggle: setDarkMode },
+    ...(biometricAvailable
+      ? [
+          {
+            icon: "face-recognition" as const,
+            label: biometricLabel,
+            type: "toggle" as const,
+            toggleValue: biometricOn,
+            onToggle: handleBiometricToggle,
+          },
+        ]
+      : []),
     { icon: "information-outline", label: "앱 버전", value: "v1.0.0" },
     { icon: "file-document-outline", label: "이용약관", onPress: () => router.push("/settings/terms") },
     { icon: "shield-lock-outline", label: "개인정보처리방침", onPress: () => router.push("/settings/privacy") },
@@ -123,8 +176,10 @@ export default function SettingsScreen() {
             <MaterialCommunityIcons name="account" size={32} color="#FFFFFF" />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: FontSize.lg, fontWeight: "800", color: colors.text }}>{MOCK_USER.name}</Text>
-            <Text style={{ fontSize: FontSize.sm, color: colors.textSecondary, marginTop: 2 }}>{MOCK_USER.email}</Text>
+            <Text style={{ fontSize: FontSize.lg, fontWeight: "800", color: colors.text }}>
+              {user.name || "사용자"}
+            </Text>
+            <Text style={{ fontSize: FontSize.sm, color: colors.textSecondary, marginTop: 2 }}>{user.email}</Text>
           </View>
           <TouchableOpacity onPress={() => router.push("/settings/profile")}>
             <MaterialCommunityIcons name="chevron-right" size={24} color={colors.textLight} />
@@ -147,7 +202,7 @@ export default function SettingsScreen() {
             <View>
               <Text style={{ fontSize: FontSize.xs, color: "rgba(255,255,255,0.8)" }}>일일 칼로리 목표</Text>
               <Text style={{ fontSize: FontSize.xl, fontWeight: "800", color: "#FFFFFF" }}>
-                {MOCK_USER.goalCalorie} kcal
+                {user.goalCalorie || 0} kcal
               </Text>
             </View>
           </View>

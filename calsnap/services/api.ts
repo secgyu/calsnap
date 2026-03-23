@@ -1,11 +1,16 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
-import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
-const DEV_API_HOST = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
-const BASE_URL = __DEV__
-  ? `http://${DEV_API_HOST}:3000/api`
-  : 'https://your-production-url.com/api';
+const getBaseUrl = () => {
+  if (!__DEV__) return 'https://your-production-url.com/api';
+
+  const debuggerHost = Constants.expoConfig?.hostUri ?? Constants.manifest2?.extra?.expoGo?.debuggerHost;
+  const host = debuggerHost?.split(':')[0] ?? 'localhost';
+  return `http://${host}:3000/api`;
+};
+
+const BASE_URL = getBaseUrl();
 
 const api = axios.create({
   baseURL: BASE_URL,

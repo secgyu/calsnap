@@ -19,13 +19,25 @@ export default function HomeScreen() {
   useEffect(() => {
     getTodaySummary()
       .then(setTodayData)
-      .catch(() => setTodayData({ date: new Date().toLocaleDateString("ko-KR"), consumed: 0, goal: 2100, carbs: 0, protein: 0, fat: 0, meals: [] }))
+      .catch(() =>
+        setTodayData({
+          date: new Date().toLocaleDateString("ko-KR"),
+          consumed: 0,
+          goal: 0,
+          carbs: 0,
+          protein: 0,
+          fat: 0,
+          meals: [],
+        }),
+      )
       .finally(() => setLoading(false));
   }, []);
 
   if (loading || !todayData) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background, justifyContent: "center", alignItems: "center" }}>
+      <SafeAreaView
+        style={{ flex: 1, backgroundColor: colors.background, justifyContent: "center", alignItems: "center" }}
+      >
         <ActivityIndicator size="large" color={colors.primary} />
       </SafeAreaView>
     );

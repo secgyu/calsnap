@@ -9,7 +9,10 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Face ID로 빠르게 로그인합니다"
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -39,7 +42,13 @@
           }
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Face ID로 빠르게 로그인합니다"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

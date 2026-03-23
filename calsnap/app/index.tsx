@@ -4,6 +4,8 @@ import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LightTheme, FontSize, Spacing } from "@/constants/theme";
+import { isAuthenticated, hasRefreshToken, refreshSession } from "@/services/auth";
+import { isBiometricAvailable, isBiometricEnabled, authenticate } from "@/services/biometric";
 
 export default function SplashScreen() {
   const router = useRouter();
@@ -39,10 +41,34 @@ export default function SplashScreen() {
       }),
     ]).start();
 
-    const timeout = setTimeout(() => {
-      // Mock: 로그인 상태 체크 (나중에 auth store 연동)
-      const isLoggedIn = false;
-      if (isLoggedIn) {
+    const timeout = setTimeout(async () => {
+      const bioAvailable = await isBiometricAvailable();
+      const bioEnabled = await isBiometricEnabled();
+      const hasToken = await isAuthenticated();
+      const hasRefresh = await hasRefreshToken();
+
+      console.log("[Auth]", { bioAvailable, bioEnabled, hasToken, hasRefresh });
+
+      if (bioAvailable && bioEnabled && hasRefresh) {
+        console.log("[Auth] Face ID 시도 중...");
+        const success = await authenticate();
+        console.log("[Auth] Face ID 결과:", success);
+        if (success) {
+          if (!hasToken) {
+            const refreshed = await refreshSession();
+            if (!refreshed) {
+              router.replace("/(auth)/login");
+              return;
+            }
+          }
+          router.replace("/(tabs)");
+        } else {
+          router.replace("/(auth)/login");
+        }
+        return;
+      }
+
+      if (hasToken) {
         router.replace("/(tabs)");
       } else {
         router.replace("/(auth)/login");

@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { View, Text, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
+import { View, Text, ScrollView, KeyboardAvoidingView, Platform, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { FontSize, Spacing } from "@/constants/theme";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Gender, ActivityLevel, calculateTDEE } from "@/utils/calories";
+import { updateProfile, updateGoal } from "@/services/user";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import GenderSelector from "@/components/onboarding/GenderSelector";
@@ -22,8 +23,33 @@ export default function OnboardingScreen() {
   const [activity, setActivity] = useState<ActivityLevel>("moderate");
   const [showPicker, setShowPicker] = useState(false);
 
+  const [loading, setLoading] = useState(false);
+
   const canCalculate = age && height && weight && Number(age) > 0 && Number(height) > 0 && Number(weight) > 0;
   const tdee = canCalculate ? calculateTDEE(gender, Number(age), Number(height), Number(weight), activity) : 0;
+
+  const handleStart = async () => {
+    if (!canCalculate) return;
+    setLoading(true);
+    try {
+      await updateProfile({
+        gender: gender as any,
+        age: Number(age),
+        height: Number(height),
+        weight: Number(weight),
+        activityLevel: activity as any,
+      });
+      await updateGoal({
+        goalCalorie: tdee,
+        goalType: "체중 유지",
+      });
+      router.replace("/(tabs)");
+    } catch {
+      Alert.alert("오류", "정보 저장에 실패했습니다. 다시 시도해주세요.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
@@ -113,7 +139,8 @@ export default function OnboardingScreen() {
 
           <Button
             title="시작하기  →"
-            onPress={() => router.replace("/(tabs)")}
+            onPress={handleStart}
+            loading={loading}
             disabled={!canCalculate}
             style={{ marginTop: Spacing.md }}
           />

@@ -1,5 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import api from './api';
+import { isBiometricEnabled } from './biometric';
 
 interface AuthResponse {
   user: any;
@@ -20,18 +21,43 @@ export async function signup(email: string, password: string, name: string): Pro
 }
 
 export async function logout(): Promise<void> {
+  const bioEnabled = await isBiometricEnabled();
+
   try {
     await api.post('/auth/logout');
   } catch {
-    // 서버 에러 무시 - 로컬 토큰만 삭제
+    // ignore server error
   } finally {
-    await clearTokens();
+    if (bioEnabled) {
+      await SecureStore.deleteItemAsync('accessToken');
+    } else {
+      await clearTokens();
+    }
   }
 }
 
 export async function isAuthenticated(): Promise<boolean> {
   const token = await SecureStore.getItemAsync('accessToken');
   return !!token;
+}
+
+export async function hasRefreshToken(): Promise<boolean> {
+  const token = await SecureStore.getItemAsync('refreshToken');
+  return !!token;
+}
+
+export async function refreshSession(): Promise<boolean> {
+  try {
+    const refreshToken = await SecureStore.getItemAsync('refreshToken');
+    if (!refreshToken) return false;
+
+    const { data } = await api.post('/auth/refresh', { refreshToken });
+    await storeTokens(data.accessToken, data.refreshToken);
+    return true;
+  } catch {
+    await clearTokens();
+    return false;
+  }
 }
 
 async function storeTokens(accessToken: string, refreshToken: string): Promise<void> {
