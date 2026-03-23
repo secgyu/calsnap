@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Expo (calsnap)
+calsnap/.expo/
+calsnap/dist/
+calsnap/web-build/
+calsnap/expo-env.d.ts
+calsnap/.kotlin/
+calsnap/*.orig.*
+calsnap/*.jks
+calsnap/*.p8
+calsnap/*.p12
+calsnap/*.key
+calsnap/*.mobileprovision
+calsnap/*.orig.expo.*
+calsnap/ios/
+calsnap/android/
+
+# NestJS (calsnap-server)
+calsnap-server/dist/
+calsnap-server/coverage/
+
+# Logs
+*.log
+npm-debug.log*
