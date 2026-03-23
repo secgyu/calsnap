@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: calsnap-db
+    restart: unless-stopped
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_DB: ${DB_NAME:-calsnap}
+      POSTGRES_USER: ${DB_USER:-calsnap}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-calsnap1234}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
