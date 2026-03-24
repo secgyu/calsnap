@@ -22,6 +22,9 @@ function RootStack() {
         <Stack.Screen name="settings/body" options={{ animation: "slide_from_right" }} />
         <Stack.Screen name="settings/terms" options={{ animation: "slide_from_right" }} />
         <Stack.Screen name="settings/privacy" options={{ animation: "slide_from_right" }} />
+        <Stack.Screen name="settings/notifications" options={{ animation: "slide_from_right" }} />
+        <Stack.Screen name="settings/delete-account" options={{ animation: "slide_from_right" }} />
+        <Stack.Screen name="weight/index" options={{ animation: "slide_from_right" }} />
       </Stack>
       <StatusBar style={isDark ? "light" : "dark"} />
     </>

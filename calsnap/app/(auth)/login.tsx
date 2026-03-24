@@ -119,7 +119,10 @@ export default function LoginScreen() {
               disabled={!email || !password}
               style={{ marginTop: Spacing.sm }}
             />
-            <TouchableOpacity style={{ alignSelf: "center", marginTop: Spacing.md }}>
+            <TouchableOpacity
+              style={{ alignSelf: "center", marginTop: Spacing.md }}
+              onPress={() => router.push("/(auth)/forgot-password")}
+            >
               <Text style={{ fontSize: FontSize.sm, color: colors.textSecondary }}>비밀번호를 잊으셨나요?</Text>
             </TouchableOpacity>
           </View>

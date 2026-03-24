@@ -13,12 +13,13 @@ export async function getDailyRecord(dateKey: string): Promise<DailyRecord | nul
   }
 }
 
-export function getDailyRecordSync(_dateKey: string): DailyRecord | null {
-  return null;
-}
-
-export function hasRecord(_dateKey: string): boolean {
-  return false;
+export async function getRecordDates(from: string, to: string): Promise<string[]> {
+  try {
+    const { data } = await api.get<string[]>('/records/dates', { params: { from, to } });
+    return data;
+  } catch {
+    return [];
+  }
 }
 
 export async function getWeeklyStats(): Promise<WeeklyStats> {
@@ -56,6 +57,11 @@ export async function createRecord(record: {
   recordedAt: string;
 }) {
   const { data } = await api.post('/records', record);
+  return data;
+}
+
+export async function getRecordById(id: string) {
+  const { data } = await api.get(`/records/${id}`);
   return data;
 }
 

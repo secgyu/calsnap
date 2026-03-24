@@ -13,8 +13,6 @@ import SectionGroup, { SettingItem } from "@/components/settings/SectionGroup";
 export default function SettingsScreen() {
   const router = useRouter();
   const { isDark, setDarkMode, colors } = useTheme();
-  const [notificationEnabled, setNotificationEnabled] = useState(true);
-  const [mealReminder, setMealReminder] = useState(true);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [biometricOn, setBiometricOn] = useState(false);
   const [biometricLabel, setBiometricLabel] = useState("생체 인증");
@@ -64,13 +62,6 @@ export default function SettingsScreen() {
     ]);
   };
 
-  const handleDeleteAccount = () => {
-    Alert.alert("회원 탈퇴", "모든 데이터가 삭제되며 복구할 수 없습니다.\n정말 탈퇴하시겠습니까?", [
-      { text: "취소", style: "cancel" },
-      { text: "탈퇴하기", style: "destructive", onPress: () => router.replace("/(auth)/login") },
-    ]);
-  };
-
   const profileSection: SettingItem[] = [
     {
       icon: "account-edit-outline",
@@ -90,22 +81,19 @@ export default function SettingsScreen() {
       value: `${user.height}cm / ${user.weight}kg`,
       onPress: () => router.push("/settings/body"),
     },
+    {
+      icon: "scale-bathroom",
+      label: "체중 기록",
+      value: `${user.weight}kg`,
+      onPress: () => router.push("/weight" as any),
+    },
   ];
 
   const notificationSection: SettingItem[] = [
     {
       icon: "bell-outline",
-      label: "푸시 알림",
-      type: "toggle",
-      toggleValue: notificationEnabled,
-      onToggle: setNotificationEnabled,
-    },
-    {
-      icon: "food-apple-outline",
-      label: "식사 리마인더",
-      type: "toggle",
-      toggleValue: mealReminder,
-      onToggle: setMealReminder,
+      label: "알림 설정",
+      onPress: () => router.push("/settings/notifications"),
     },
   ];
 
@@ -129,7 +117,12 @@ export default function SettingsScreen() {
 
   const dangerSection: SettingItem[] = [
     { icon: "logout", label: "로그아웃", type: "danger", onPress: handleLogout },
-    { icon: "account-remove-outline", label: "회원 탈퇴", type: "danger", onPress: handleDeleteAccount },
+    {
+      icon: "account-remove-outline",
+      label: "회원 탈퇴",
+      type: "danger",
+      onPress: () => router.push("/settings/delete-account"),
+    },
   ];
 
   return (

@@ -6,8 +6,8 @@ import { useFocusEffect } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { FontSize, Spacing } from "@/constants/theme";
 import { useTheme } from "@/contexts/ThemeContext";
-import { WEEKDAYS, formatDateKey } from "@/utils/date";
-import { getDailyRecord, getWeeklyStats } from "@/services/record";
+import { WEEKDAYS, formatDateKey, getWeekDates } from "@/utils/date";
+import { getDailyRecord, getWeeklyStats, getRecordDates } from "@/services/record";
 import { DailyRecord, WeeklyStats } from "@/types/record";
 import WeekCalendar from "@/components/history/WeekCalendar";
 import DailySummaryCard from "@/components/history/DailySummaryCard";
@@ -24,6 +24,7 @@ export default function HistoryScreen() {
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const [dailyRecord, setDailyRecord] = useState<DailyRecord | null>(null);
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStats | null>(null);
+  const [recordDatesSet, setRecordDatesSet] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
   const selectedKey = formatDateKey(selectedDate);
@@ -41,7 +42,14 @@ export default function HistoryScreen() {
       getWeeklyStats()
         .then(setWeeklyStats)
         .catch(() => setWeeklyStats({ avgCalories: "0", achievementRate: "0", recordedDays: "0" }));
-    }, [selectedKey]),
+
+      const baseDate = new Date(today);
+      baseDate.setDate(today.getDate() + weekOffset * 7);
+      const weekDates = getWeekDates(baseDate);
+      const from = formatDateKey(weekDates[0]);
+      const to = formatDateKey(weekDates[6]);
+      getRecordDates(from, to).then((dates) => setRecordDatesSet(new Set(dates)));
+    }, [selectedKey, weekOffset]),
   );
 
   const animateTransition = (cb: () => void) => {
@@ -85,6 +93,7 @@ export default function HistoryScreen() {
           weekOffset={weekOffset}
           selectedDate={selectedDate}
           today={today}
+          recordDates={recordDatesSet}
           onSelectDate={(d) => animateTransition(() => setSelectedDate(d))}
           onPrevWeek={() => setWeekOffset((p) => p - 1)}
           onNextWeek={() => {

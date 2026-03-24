@@ -11,7 +11,7 @@ export class RecordService {
     @InjectRepository(MealRecord)
     private readonly recordRepo: Repository<MealRecord>,
     private readonly userService: UserService,
-  ) {}
+  ) { }
 
   async create(dto: CreateRecordDto, userId: string): Promise<MealRecord> {
     const record = this.recordRepo.create({
@@ -121,7 +121,7 @@ export class RecordService {
     const dailyMap = new Map<string, number>();
 
     for (const m of meals) {
-      const key = m.recordedAt.toISOString().slice(0, 10);
+      const key = this.toLocalDateStr(m.recordedAt);
       dailyMap.set(key, (dailyMap.get(key) || 0) + m.calories);
     }
 
@@ -138,9 +138,16 @@ export class RecordService {
     };
   }
 
+  private toLocalDateStr(date: Date): string {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
   async getTodaySummary(userId: string) {
     const today = new Date();
-    const dateStr = today.toISOString().slice(0, 10);
+    const dateStr = this.toLocalDateStr(today);
     const { start, end } = this.getDateRange(dateStr);
     const user = await this.userService.findById(userId);
 
@@ -186,7 +193,7 @@ export class RecordService {
   }
 
   async getRemainingCalories(userId: string): Promise<number> {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = this.toLocalDateStr(new Date());
     const { start, end } = this.getDateRange(today);
     const user = await this.userService.findById(userId);
 

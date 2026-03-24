@@ -3,12 +3,12 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { WEEKDAYS, formatDateKey, formatMonthLabel, getWeekDates } from "@/utils/date";
 import { FontSize, Spacing, BorderRadius } from "@/constants/theme";
 import { useTheme } from "@/contexts/ThemeContext";
-import { hasRecord } from "@/services/record";
 
 interface WeekCalendarProps {
   weekOffset: number;
   selectedDate: Date;
   today: Date;
+  recordDates: Set<string>;
   onSelectDate: (date: Date) => void;
   onPrevWeek: () => void;
   onNextWeek: () => void;
@@ -18,6 +18,7 @@ export default function WeekCalendar({
   weekOffset,
   selectedDate,
   today,
+  recordDates,
   onSelectDate,
   onPrevWeek,
   onNextWeek,
@@ -59,7 +60,7 @@ export default function WeekCalendar({
           const dateKey = formatDateKey(date);
           const isSelected = dateKey === selectedKey;
           const isTodayDate = dateKey === formatDateKey(today);
-          const hasData = hasRecord(dateKey);
+          const hasData = recordDates.has(dateKey);
           const isFuture = date > today;
 
           return (
